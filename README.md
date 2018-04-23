@@ -27,6 +27,10 @@ Follow these steps to enable running the bot locally for debugging.
 
     > **IMPORTANT**: Leave ngrok running while you run the sample. If you stop ngrok and re-start it, the forwarding URL changes, and you'll need to update the value of `NgrokRootUrl`.
 
+1. Start the Azure Cosmos DB Emulator. This needs to be running before you start the sample.
+
+1. Press F5 to debug the sample.
+
 1. Run the Bot Framework Emulator. At the top, where it says **Enter your endpoint URL**, enter `https://localhost:3979/api/messages`.
 
 1. That will prompt for app ID and password. Enter your app ID and secret, and leave **Locale** blank.
