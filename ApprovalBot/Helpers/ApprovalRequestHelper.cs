@@ -16,6 +16,7 @@ namespace ApprovalBot.Helpers
         private static readonly string originatorId = ConfigurationManager.AppSettings["OrignatorId"];
         private static readonly string messageSender = ConfigurationManager.AppSettings["SenderEmail"];
         private static readonly string actionBaseUrl = ConfigurationManager.AppSettings["AppRootUrl"];
+        private static readonly string ngrokUrl = ConfigurationManager.AppSettings["NgrokRootUrl"];
 
         public static async Task SendApprovalRequest(string accessToken, string userId, string fileId, string[] approvers)
         {
@@ -232,7 +233,7 @@ namespace ApprovalBot.Helpers
             {
                 Title = "Approve",
                 Method = AdaptiveHttpActionMethod.POST,
-                Url = new Uri($"{actionBaseUrl}/api/responses"),
+                Url = new Uri($"{(string.IsNullOrEmpty(ngrokUrl) ? actionBaseUrl : ngrokUrl) }/api/responses"),
                 Body = $@"{{ ""userEmail"": ""{recipient}"", ""approvalId"": ""{approvalId}"", ""response"": ""approved"", ""notes"": ""{{{{notes.value}}}}"" }}s"
             });
 
@@ -240,7 +241,7 @@ namespace ApprovalBot.Helpers
             {
                 Title = "Reject",
                 Method = AdaptiveHttpActionMethod.POST,
-                Url = new Uri($"{actionBaseUrl}/api/responses"),
+                Url = new Uri($"{(string.IsNullOrEmpty(ngrokUrl) ? actionBaseUrl : ngrokUrl)}/api/responses"),
                 Body = $@"{{ ""userEmail"": ""{recipient}"", ""approvalId"": ""{approvalId}"", ""response"": ""rejected"", ""notes"": ""{{{{notes.value}}}}"" }}"
             });
 
