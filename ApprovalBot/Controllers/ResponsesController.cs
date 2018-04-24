@@ -18,11 +18,12 @@ namespace ApprovalBot.Controllers
     {
         private readonly string baseUrl = ConfigurationManager.AppSettings["AppRootUrl"];
         private readonly string amSender = ConfigurationManager.AppSettings["SenderEmail"];
+        private readonly string ngrokUrl = ConfigurationManager.AppSettings["NgrokRootUrl"];
         public async Task<IHttpActionResult> PostResponse(ActionableEmailResponse response)
         {
             // Validate the authorization header
             bool isTokenValid = await ValidateAuthorizationHeader(Request.Headers.Authorization,
-                baseUrl, response.UserEmail);
+                string.IsNullOrEmpty(ngrokUrl) ? baseUrl : ngrokUrl, response.UserEmail);
             if (!isTokenValid)
             {
                 return Unauthorized();
