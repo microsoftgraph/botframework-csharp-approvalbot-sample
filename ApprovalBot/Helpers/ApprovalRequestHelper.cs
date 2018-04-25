@@ -104,7 +104,7 @@ namespace ApprovalBot.Helpers
 
                 var requestorPicCol = new AdaptiveColumn()
                 {
-                    Width = AdaptiveColumnWidth.Auto
+                    Width = AdaptiveColumnWidth.Auto.ToLower()
                 };
 
                 requestorPicCol.Items.Add(requestorPic);
@@ -114,7 +114,7 @@ namespace ApprovalBot.Helpers
 
             var requestorNameCol = new AdaptiveColumn()
             {
-                Width = AdaptiveColumnWidth.Stretch
+                Width = AdaptiveColumnWidth.Stretch.ToLower()
             };
 
             // Outlook-specific property on Column
@@ -165,7 +165,7 @@ namespace ApprovalBot.Helpers
 
                 var fileThumbCol = new AdaptiveColumn()
                 {
-                    Width = AdaptiveColumnWidth.Auto
+                    Width = AdaptiveColumnWidth.Auto.ToLower()
                 };
 
                 fileThumbCol.Items.Add(fileThumb);
@@ -175,7 +175,7 @@ namespace ApprovalBot.Helpers
 
             var fileNameCol = new AdaptiveColumn()
             {
-                Width = AdaptiveColumnWidth.Stretch
+                Width = AdaptiveColumnWidth.Stretch.ToLower()
             };
 
             // Outlook-specific property on Column

@@ -11,7 +11,7 @@ namespace ApprovalBot.Helpers
 {
     public class ApprovalStatusHelper
     {
-        public static async Task<AdaptiveCard> GetApprovalsForUserCard(string accessToken, string userId)
+        public static async Task<List<AdaptiveCard>> GetApprovalsForUserCard(string accessToken, string userId)
         {
             // Get all approvals requested by current user
             var approvals = await DatabaseHelper.GetApprovalsAsync(a => a.Requestor == userId);
@@ -24,43 +24,24 @@ namespace ApprovalBot.Helpers
             else if (approvals.Count() == 1)
             {
                 // Return status card of the only approval
-                return GetApprovalStatusCard(approvals.First());
+                return new List<AdaptiveCard>() { GetApprovalStatusCard(approvals.First()) };
             }
             else
             {
-                var approvalListCard = new AdaptiveCard();
+                var approvalCardList = new List<AdaptiveCard>();
 
-                approvalListCard.Body.Add(new AdaptiveTextBlock()
+                foreach (var approval in approvals)
                 {
-                    Weight = AdaptiveTextWeight.Bolder,
-                    Size = AdaptiveTextSize.Medium,
-                    Text = "Select an approval request to see its status"
-                });
+                    var approvalDetailCard = new AdaptiveCard();
 
-                var approvalListContainer = new AdaptiveContainer()
-                {
-                    Separator = true,
-                    Style = AdaptiveContainerStyle.Emphasis
-                };
-
-                // Prompt user to choose an approval
-                foreach (Approval approval in approvals)
-                {
-                    var approvalColumnSet = new AdaptiveColumnSet()
-                    {
-                        SelectAction = new AdaptiveSubmitAction()
-                        {
-                            Title = approval.File.Name,
-                            DataJson = $@"{{ ""cardAction"": ""{CardActionTypes.SelectApproval}"", ""selectedApproval"": ""{approval.Id}"" }}"
-                        }
-                    };
+                    var approvalColumnSet = new AdaptiveColumnSet();
 
                     // Get thumbnail
                     var thumbnailUri = await GraphHelper.GetFileThumbnailDataUri(accessToken, approval.File.Id);
 
                     var fileThumbCol = new AdaptiveColumn()
                     {
-                        Width = AdaptiveColumnWidth.Auto
+                        Width = AdaptiveColumnWidth.Auto.ToLower()
                     };
 
                     fileThumbCol.Items.Add(new AdaptiveImage()
@@ -74,7 +55,7 @@ namespace ApprovalBot.Helpers
 
                     var fileNameCol = new AdaptiveColumn()
                     {
-                        Width = AdaptiveColumnWidth.Stretch
+                        Width = AdaptiveColumnWidth.Stretch.ToLower()
                     };
 
                     fileNameCol.Items.Add(new AdaptiveTextBlock()
@@ -92,12 +73,18 @@ namespace ApprovalBot.Helpers
 
                     approvalColumnSet.Columns.Add(fileNameCol);
 
-                    approvalListContainer.Items.Add(approvalColumnSet);
+                    approvalDetailCard.Body.Add(approvalColumnSet);
+
+                    approvalDetailCard.Actions.Add(new AdaptiveSubmitAction()
+                    {
+                        Title = "This one",
+                        DataJson = $@"{{ ""cardAction"": ""{CardActionTypes.SelectApproval}"", ""selectedApproval"": ""{approval.Id}"" }}"
+                    });
+
+                    approvalCardList.Add(approvalDetailCard);
                 }
 
-                approvalListCard.Body.Add(approvalListContainer);
-
-                return approvalListCard;
+                return approvalCardList;
             }
         }
 
@@ -124,7 +111,7 @@ namespace ApprovalBot.Helpers
 
                 var emailAddressColumn = new AdaptiveColumn()
                 {
-                    Width = AdaptiveColumnWidth.Stretch
+                    Width = AdaptiveColumnWidth.Stretch.ToLower()
                 };
 
                 emailAddressColumn.Items.Add(new AdaptiveTextBlock()
@@ -136,7 +123,7 @@ namespace ApprovalBot.Helpers
 
                 var responseColumn = new AdaptiveColumn()
                 {
-                    Width = AdaptiveColumnWidth.Auto
+                    Width = AdaptiveColumnWidth.Auto.ToLower()
                 };
 
                 responseColumn.Items.Add(ResponseCardTextBlockFromResponse(approver.Response));

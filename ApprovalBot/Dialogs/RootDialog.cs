@@ -254,18 +254,32 @@ namespace ApprovalBot.Dialogs
         private async Task<Activity> PromptForApprovalRequest(IDialogContext context, Activity activity, string accessToken)
         {
             await ShowTyping(context, activity);
-            var statusCard = await ApprovalStatusHelper.GetApprovalsForUserCard(accessToken, activity.From.Id);
-            if (statusCard == null)
+            var statusCardList = await ApprovalStatusHelper.GetApprovalsForUserCard(accessToken, activity.From.Id);
+            if (statusCardList == null)
             {
                 return activity.CreateReply("I'm sorry, but I didn't find any approvals requested by you.");
             }
             else
             {
                 var reply = activity.CreateReply();
-                reply.Attachments = new List<Attachment>()
+
+                if (statusCardList.Count > 1)
                 {
-                    new Attachment() { ContentType = AdaptiveCard.ContentType, Content = statusCard }
-                };
+                    reply.Text = "Select an approval to see its status.";
+                    reply.AttachmentLayout = AttachmentLayoutTypes.Carousel;
+                }
+
+                reply.Attachments = new List<Attachment>();
+
+                foreach(var card in statusCardList)
+                {
+                    reply.Attachments.Add(new Attachment()
+                    {
+                        ContentType = AdaptiveCard.ContentType,
+                        Content = card
+                    });
+                }
+
                 return reply;
             }
         }
