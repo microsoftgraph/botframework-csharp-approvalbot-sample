@@ -22,7 +22,7 @@ namespace ApprovalBot.Dialogs
         {
             ClientId = ConfigurationManager.AppSettings["MicrosoftAppId"],
             ClientSecret = ConfigurationManager.AppSettings["MicrosoftAppPassword"],
-            Scopes = new string[] { "User.Read", "Files.ReadWrite", "Mail.Send" },
+            Scopes = new string[] { "User.Read", "Files.ReadWrite", "Mail.Send", "People.Read" },
             RedirectUrl = $"{ConfigurationManager.AppSettings["AppRootUrl"]}/callback",
         };
 
