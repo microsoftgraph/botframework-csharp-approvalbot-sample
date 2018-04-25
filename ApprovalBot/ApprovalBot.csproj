@@ -218,6 +218,7 @@
     <Compile Include="Helpers\DatabaseHelper.cs" />
     <Compile Include="Helpers\EmailHelper.cs" />
     <Compile Include="Helpers\GraphHelper.cs" />
+    <Compile Include="Helpers\TimeZoneHelper.cs" />
     <Compile Include="Models\ActionableEmailResponse.cs" />
     <Compile Include="Models\ActionData.cs" />
     <Compile Include="Models\Approval.cs" />

@@ -11,7 +11,7 @@ namespace ApprovalBot.Helpers
 {
     public class ApprovalStatusHelper
     {
-        public static async Task<List<AdaptiveCard>> GetApprovalsForUserCard(string accessToken, string userId)
+        public static async Task<List<AdaptiveCard>> GetApprovalsForUserCard(string accessToken, string userId, string userTimeZone)
         {
             // Get all approvals requested by current user
             var approvals = await DatabaseHelper.GetApprovalsAsync(a => a.Requestor == userId);
@@ -68,7 +68,7 @@ namespace ApprovalBot.Helpers
                     {
                         IsSubtle = true,
                         Spacing = AdaptiveSpacing.None,
-                        Text = $"Requested: {approval.RequestDate.ToString()}"
+                        Text = $"Requested: {TimeZoneHelper.GetDateTimeStringInTimeZone(approval.RequestDate, userTimeZone)}"
                     });
 
                     approvalColumnSet.Columns.Add(fileNameCol);

@@ -13,6 +13,7 @@ using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Connector;
 using Microsoft.Graph;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace ApprovalBot.Helpers
 {
@@ -21,6 +22,40 @@ namespace ApprovalBot.Helpers
         private static readonly bool LogGraphRequests =
             string.IsNullOrEmpty(ConfigurationManager.AppSettings["LogGraphRequests"]) ? false :
             Convert.ToBoolean(ConfigurationManager.AppSettings["LogGraphRequests"]);
+
+        public static async Task<string> GetUserTimeZone(string accessToken)
+        {
+            var client = await GetAuthenticatedClient(accessToken);
+
+            // Mailbox settings aren't yet supported by the library,
+            // so we need to do this via a custom request
+
+            string requestUrl = $"{client.Me.Request().RequestUrl}/mailboxsettings/timezone";
+
+            var requestMessage = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+
+            await client.AuthenticationProvider.AuthenticateRequestAsync(requestMessage);
+
+            var response = await client.HttpProvider.SendAsync(requestMessage);
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                JObject timeZoneInfo = JObject.Parse(content);
+                return (string)timeZoneInfo["value"];
+            }
+            else
+            {
+                throw new ServiceException
+                (
+                    new Microsoft.Graph.Error()
+                    {
+                        Code = response.StatusCode.ToString(),
+                        Message = await response.Content.ReadAsStringAsync()
+                    }
+                );
+            }
+        }
+
         public static async Task<AdaptiveCard> GetFilePickerCardFromOneDrive(string accessToken)
         {
             var client = await GetAuthenticatedClient(accessToken);
@@ -88,7 +123,7 @@ namespace ApprovalBot.Helpers
             return null;
         }
 
-        public static async Task<AdaptiveCard> GetFileDetailCard(string accessToken, string fileId)
+        public static async Task<AdaptiveCard> GetFileDetailCard(string accessToken, string fileId, string userTimeZone)
         {
             var client = await GetAuthenticatedClient(accessToken);
 
@@ -117,7 +152,7 @@ namespace ApprovalBot.Helpers
                 Facts = new List<AdaptiveFact>()
                 {
                     new AdaptiveFact("Size", $"{file.Size / 1024} KB"),
-                    new AdaptiveFact("Last modified", file.LastModifiedDateTime.ToString()),
+                    new AdaptiveFact("Last modified", TimeZoneHelper.GetDateTimeStringInTimeZone(file.LastModifiedDateTime.Value, userTimeZone)),
                     new AdaptiveFact("Last modified by", file.LastModifiedBy.User.DisplayName)
                 }
             });
