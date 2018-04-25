@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using AdaptiveCards;
@@ -15,6 +18,9 @@ namespace ApprovalBot.Helpers
 {
     public static class GraphHelper
     {
+        private static readonly bool LogGraphRequests =
+            string.IsNullOrEmpty(ConfigurationManager.AppSettings["LogGraphRequests"]) ? false :
+            Convert.ToBoolean(ConfigurationManager.AppSettings["LogGraphRequests"]);
         public static async Task<AdaptiveCard> GetFilePickerCardFromOneDrive(string accessToken)
         {
             var client = await GetAuthenticatedClient(accessToken);
@@ -284,12 +290,94 @@ namespace ApprovalBot.Helpers
 
         private static async Task<GraphServiceClient> GetAuthenticatedClient(string accessToken)
         {
+            if (LogGraphRequests)
+                return new GraphServiceClient(new DelegateAuthenticationProvider(
+                    async (requestMessage) => 
+                    {
+                        requestMessage.Headers.Authorization =
+                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                    }),
+                    new HttpProvider(new LoggingHttpProvider(), true, null));
+
             return new GraphServiceClient(new DelegateAuthenticationProvider(
-                async (requestMessage) => 
+                async (requestMessage) =>
                 {
                     requestMessage.Headers.Authorization =
                         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
                 }));
+        }
+    }
+
+    public class LoggingHttpProvider : HttpClientHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            // Log request
+            string requestId = Guid.NewGuid().ToString();
+            request.Headers.Add("client-request-id", requestId);
+            var requestLog = new GraphLogEntry(request);
+            await requestLog.LoadBody(request);
+            await DatabaseHelper.AddGraphLog(requestLog);
+
+            try
+            {
+                HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
+
+                // Log response
+                var responseLog = new GraphLogEntry(response);
+                await responseLog.LoadBody(response);
+                await DatabaseHelper.AddGraphLog(responseLog);
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                await DatabaseHelper.AddGraphLog(new GraphLogEntry(ex, requestId));
+                throw;
+            }
+        }
+    }
+
+    public class GraphLogEntry
+    {
+        public string RequestId { get; set; }
+        public string RequestUrl { get; set; }
+        public string RequestMethod { get; set; }
+        public string Body { get; set; }
+
+        public GraphLogEntry(HttpRequestMessage request)
+        {
+            RequestId = request.Headers.Where(h => string.Equals(h.Key, "client-request-id", StringComparison.OrdinalIgnoreCase)).FirstOrDefault().Value?.FirstOrDefault();
+            RequestUrl = request.RequestUri.ToString();
+            RequestMethod = request.Method.ToString();
+        }
+
+        public GraphLogEntry(HttpResponseMessage response)
+        {
+            RequestId = response.Headers.Where(h => string.Equals(h.Key, "client-request-id", StringComparison.OrdinalIgnoreCase)).FirstOrDefault().Value?.FirstOrDefault();
+        }
+
+        public GraphLogEntry(Exception ex, string requestId)
+        {
+            RequestId = requestId;
+            RequestMethod = "EXCEPTION";
+            Body = ex.ToString();
+        }
+
+        public async Task LoadBody(HttpRequestMessage request)
+        {
+            if (request.Content != null)
+            {
+                Body = await request.Content.ReadAsStringAsync();
+            }
+        }
+
+        public async Task LoadBody(HttpResponseMessage response)
+        {
+            if (response.Content != null)
+            {
+                Body = await response.Content.ReadAsStringAsync();
+            }
         }
     }
 }
