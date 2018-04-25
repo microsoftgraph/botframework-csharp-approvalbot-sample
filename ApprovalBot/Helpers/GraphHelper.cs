@@ -97,6 +97,13 @@ namespace ApprovalBot.Helpers
                 .Expand("thumbnails")
                 .GetAsync();
 
+            // Get people user interacts with regularly
+            var potentialApprovers = await client.Me.People.Request()
+                // Only want organizational users, and do not want to send back to bot
+                .Filter("personType/subclass eq 'OrganizationUser' and displayName ne 'Approval Bot'")
+                .Top(10)
+                .GetAsync();
+
             var fileCard = new AdaptiveCard();
 
             fileCard.Body.Add(new AdaptiveTextBlock()
@@ -133,13 +140,23 @@ namespace ApprovalBot.Helpers
                 Weight = AdaptiveTextWeight.Bolder
             });
 
-            recipientPromptCard.Body.Add(new AdaptiveTextInput()
+            var recipientPicker = new AdaptiveChoiceSetInput()
             {
                 Id = "approvers",
-                IsMultiline = true,
-                Placeholder = "Enter one or more email addresses separated by semi-colons",
-                Style = AdaptiveTextInputStyle.Email
-            });
+                IsMultiSelect = true,
+                Style = AdaptiveChoiceInputStyle.Compact
+            };
+
+            foreach(var potentialApprover in potentialApprovers)
+            {
+                recipientPicker.Choices.Add(new AdaptiveChoice()
+                {
+                    Title = potentialApprover.DisplayName,
+                    Value = potentialApprover.ScoredEmailAddresses.First().Address
+                });
+            }
+
+            recipientPromptCard.Body.Add(recipientPicker);
 
             recipientPromptCard.Actions.Add(new AdaptiveSubmitAction()
             {
