@@ -19,6 +19,7 @@ namespace ApprovalBot.Helpers
         private static readonly string databaseKey = ConfigurationManager.AppSettings["DatabaseKey"];
         private static readonly string databaseName = "ApprovalBotDB";
         private static readonly string collectionName = "Approvals";
+        private static readonly string loggingCollectionName = "GraphRequests";
 
         private static DocumentClient client = null;
 
@@ -61,6 +62,25 @@ namespace ApprovalBot.Helpers
                     await client.CreateDocumentCollectionAsync(
                         UriFactory.CreateDatabaseUri(databaseName),
                         new DocumentCollection { Id = collectionName },
+                        new RequestOptions { OfferThroughput = 1000 });
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            try
+            {
+                await client.ReadDocumentCollectionAsync(UriFactory.CreateDocumentCollectionUri(databaseName, loggingCollectionName));
+            }
+            catch (DocumentClientException e)
+            {
+                if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    await client.CreateDocumentCollectionAsync(
+                        UriFactory.CreateDatabaseUri(databaseName),
+                        new DocumentCollection { Id = loggingCollectionName },
                         new RequestOptions { OfferThroughput = 1000 });
                 }
                 else
@@ -146,6 +166,15 @@ namespace ApprovalBot.Helpers
             {
                 await DeleteApprovalAsync(approval.Id);
             }
+        }
+
+        public static async Task<Document> AddGraphLog(GraphLogEntry entry)
+        {
+            Document document = await client.CreateDocumentAsync(
+                UriFactory.CreateDocumentCollectionUri(databaseName, loggingCollectionName),
+                entry);
+
+            return document;
         }
     }
 }
