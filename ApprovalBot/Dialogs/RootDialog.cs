@@ -74,6 +74,8 @@ namespace ApprovalBot.Dialogs
                     string accessToken = await GetAccessToken(context);
                     if (string.IsNullOrEmpty(accessToken))
                     {
+                        // Save the user's input
+                        context.UserData.SetValue("preAuthCommand", activity);
                         // Do prompt
                         await context.Forward(new AuthDialog(new MSALAuthProvider(), authOptions),
                         ResumeAfterAuth, activity, CancellationToken.None);
@@ -161,7 +163,7 @@ namespace ApprovalBot.Dialogs
                 else if (message.StartsWith("check status"))
                 {
                     RemoveMissingInfoState(context);
-                    reply = await PromptForApprovalRequest(context,activity, accessToken);
+                    reply = await PromptForApprovalRequest(context, activity, accessToken);
                 }
                 else if (!string.IsNullOrEmpty(ExpectedMissingInfo(context)))
                 {
@@ -308,7 +310,18 @@ namespace ApprovalBot.Dialogs
         {
             var message = await result;
 
-            await context.PostAsync("Now that you're logged in, what can I do for you?");
+            // See if we've saved a command
+            var preAuthCommand = context.UserData.GetValueOrDefault<Activity>("preAuthCommand", null);
+            if (preAuthCommand != null)
+            {
+                var reply = await HandleMessage(context, preAuthCommand, message.AccessToken);
+                await context.PostAsync(reply);
+            }
+            else
+            {
+                await context.PostAsync("Now that you're logged in, what can I do for you?");
+            }
+
             context.Wait(MessageReceivedAsync);
         }
 
