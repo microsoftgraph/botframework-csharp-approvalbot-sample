@@ -200,36 +200,18 @@ namespace ApprovalBot.Helpers
 
             // Respond button
 
-            var showFormActionSet = new AdaptiveActionSet();
-
-            showFormActionSet.Actions.Add(new AdaptiveToggleVisibilityAction()
-            {
-                Title = "Respond",
-                TargetElements = new[] { "responseForm" }
-            });
-
-            approvalRequestCard.Body.Add(showFormActionSet);
-
             // Response form (hiddden initially)
-            var responseForm = new AdaptiveContainer()
-            {
-                Id = "responseForm",
-                Style = AdaptiveContainerStyle.Emphasis
-            };
+            var responseForm = new AdaptiveCard();
+            responseForm.AdditionalProperties.Add("style", "emphasis");
 
-            // Outlook-specific property
-            responseForm.AdditionalProperties.Add("isVisible", false);
-
-            responseForm.Items.Add(new AdaptiveTextInput()
+            responseForm.Body.Add(new AdaptiveTextInput()
             {
                 Id = "notes",
                 IsMultiline = true,
                 Placeholder = "Enter any notes for the requestor"
             });
 
-            var submitResponseActionSet = new AdaptiveActionSet();
-
-            submitResponseActionSet.Actions.Add(new AdaptiveHttpAction()
+            responseForm.Actions.Add(new AdaptiveHttpAction()
             {
                 Title = "Approve",
                 Method = AdaptiveHttpActionMethod.POST,
@@ -237,7 +219,7 @@ namespace ApprovalBot.Helpers
                 Body = $@"{{ ""userEmail"": ""{recipient}"", ""approvalId"": ""{approvalId}"", ""response"": ""approved"", ""notes"": ""{{{{notes.value}}}}"" }}s"
             });
 
-            submitResponseActionSet.Actions.Add(new AdaptiveHttpAction()
+            responseForm.Actions.Add(new AdaptiveHttpAction()
             {
                 Title = "Reject",
                 Method = AdaptiveHttpActionMethod.POST,
@@ -245,9 +227,10 @@ namespace ApprovalBot.Helpers
                 Body = $@"{{ ""userEmail"": ""{recipient}"", ""approvalId"": ""{approvalId}"", ""response"": ""rejected"", ""notes"": ""{{{{notes.value}}}}"" }}"
             });
 
-            responseForm.Items.Add(submitResponseActionSet);
-
-            approvalRequestCard.Body.Add(responseForm);
+            approvalRequestCard.Actions.Add(new AdaptiveShowCardAction() {
+                Title = "Respond",
+                Card = responseForm
+            });
 
             return approvalRequestCard;
         }
