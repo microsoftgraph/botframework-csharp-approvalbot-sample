@@ -138,6 +138,7 @@ namespace ApprovalBot.Dialogs
                         }
                         else
                         {
+                            await ShowTyping(context, activity);
                             await ApprovalRequestHelper.SendApprovalRequest(accessToken, activity.From.Id, actionData.SelectedFile, approvers);
                             reply = activity.CreateReply(@"I've sent the request. You can check the status of your request by typing ""check status"".");
                         }
@@ -183,6 +184,7 @@ namespace ApprovalBot.Dialogs
                         {
                             ActionData actionData = context.UserData.GetValue<ActionData>("actionData");
                             RemoveMissingInfoState(context);
+                            await ShowTyping(context, activity);
                             await ApprovalRequestHelper.SendApprovalRequest(accessToken, activity.From.Id, actionData.SelectedFile, approvers);
                             reply = activity.CreateReply(@"I've sent the request. You can check the status of your request by typing ""check status"".");
                         }
