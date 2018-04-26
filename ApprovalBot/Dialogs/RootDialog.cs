@@ -241,9 +241,8 @@ namespace ApprovalBot.Dialogs
         private async Task<Activity> ConfirmFile(IDialogContext context, Activity activity, string accessToken, string fileId)
         {
             await ShowTyping(context, activity);
-            var userTimeZone = context.UserData.GetValueOrDefault("userTimeZone", "UTC");
             var reply = activity.CreateReply("Get approval for this file?");
-            var fileDetailCard = await GraphHelper.GetFileDetailCard(accessToken, fileId, userTimeZone);
+            var fileDetailCard = await GraphHelper.GetFileDetailCard(accessToken, fileId);
             reply.Attachments = new List<Attachment>()
             {
                 new Attachment() { ContentType = AdaptiveCard.ContentType, Content = fileDetailCard }
@@ -255,8 +254,7 @@ namespace ApprovalBot.Dialogs
         private async Task<Activity> PromptForApprovalRequest(IDialogContext context, Activity activity, string accessToken)
         {
             await ShowTyping(context, activity);
-            var userTimeZone = context.UserData.GetValueOrDefault("userTimeZone", "UTC");
-            var statusCardList = await ApprovalStatusHelper.GetApprovalsForUserCard(accessToken, activity.From.Id, userTimeZone);
+            var statusCardList = await ApprovalStatusHelper.GetApprovalsForUserCard(accessToken, activity.From.Id);
             if (statusCardList == null)
             {
                 return activity.CreateReply("I'm sorry, but I didn't find any approvals requested by you.");
@@ -325,10 +323,6 @@ namespace ApprovalBot.Dialogs
         private async Task ResumeAfterAuth(IDialogContext context, IAwaitable<AuthResult> result)
         {
             var message = await result;
-
-            // Get user's time zone
-            string timeZone = await GraphHelper.GetUserTimeZone(message.AccessToken);
-            context.UserData.SetValue("userTimeZone", timeZone);
 
             // See if we've saved a command
             var preAuthCommand = context.UserData.GetValueOrDefault<Activity>("preAuthCommand", null);

@@ -7,12 +7,14 @@ namespace ApprovalBot.Helpers
 {
     public static class TimeZoneHelper
     {
-        public static string GetDateTimeStringInTimeZone(DateTimeOffset dateTimeOffset, string timeZone)
+        public static string GetAdaptiveDateTimeString(DateTimeOffset dateTimeOffset)
         {
-            var targetTZ = TimeZoneInfo.FindSystemTimeZoneById(timeZone);
+            var rfc3389String = $"{dateTimeOffset.UtcDateTime.ToString("s")}Z";
 
-            var convertedOffset = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(dateTimeOffset, timeZone);
-            return convertedOffset.ToString("MMMM dd, yyyy h:mm tt");
+            // Returns string like
+            // {{DATE(2018-04-26T07:00:00Z,SHORT)}} {{TIME(2018-04-26T07:00:00Z)}}
+            // See docs at https://docs.microsoft.com/en-us/adaptive-cards/create/textfeatures#datetime-function-rules
+            return $"{{{{DATE({rfc3389String},SHORT)}}}} {{{{TIME({rfc3389String})}}}}";
         }
     }
 }
