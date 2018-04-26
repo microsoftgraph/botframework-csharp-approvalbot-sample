@@ -13,7 +13,7 @@ namespace ApprovalBot.Helpers
 {
     public static class ApprovalRequestHelper
     {
-        private static readonly string originatorId = ConfigurationManager.AppSettings["OrignatorId"];
+        private static readonly string originatorId = ConfigurationManager.AppSettings["OriginatorId"];
         private static readonly string messageSender = ConfigurationManager.AppSettings["SenderEmail"];
         private static readonly string actionBaseUrl = ConfigurationManager.AppSettings["AppRootUrl"];
         private static readonly string ngrokUrl = ConfigurationManager.AppSettings["NgrokRootUrl"];
