@@ -139,7 +139,24 @@ namespace ApprovalBot.Dialogs
                         else
                         {
                             await ShowTyping(context, activity);
-                            await ApprovalRequestHelper.SendApprovalRequest(accessToken, activity.From.Id, actionData.SelectedFile, approvers);
+
+                            try
+                            {
+                                await ApprovalRequestHelper.SendApprovalRequest(accessToken, activity.From.Id, actionData.SelectedFile, approvers);
+                            }
+                            catch (Microsoft.Graph.ServiceException ex)
+                            {
+                                if (ex.Error.Code == "UnknownError" && ex.Message.Contains("Invalid Hostname"))
+                                {
+                                    // retry
+                                    await ApprovalRequestHelper.SendApprovalRequest(accessToken, activity.From.Id, actionData.SelectedFile, approvers);
+                                }
+                                else
+                                {
+                                    throw;
+                                }
+                            }
+
                             reply = activity.CreateReply(@"I've sent the request. You can check the status of your request by typing ""check status"".");
                         }
                     }
@@ -185,7 +202,23 @@ namespace ApprovalBot.Dialogs
                             ActionData actionData = context.UserData.GetValue<ActionData>("actionData");
                             RemoveMissingInfoState(context);
                             await ShowTyping(context, activity);
-                            await ApprovalRequestHelper.SendApprovalRequest(accessToken, activity.From.Id, actionData.SelectedFile, approvers);
+                            try
+                            {
+                                await ApprovalRequestHelper.SendApprovalRequest(accessToken, activity.From.Id, actionData.SelectedFile, approvers);
+                            }
+                            catch (Microsoft.Graph.ServiceException ex)
+                            {
+                                if (ex.Error.Code == "UnknownError" && ex.Message.Contains("Invalid Hostname"))
+                                {
+                                    // retry
+                                    await ApprovalRequestHelper.SendApprovalRequest(accessToken, activity.From.Id, actionData.SelectedFile, approvers);
+                                }
+                                else
+                                {
+                                    throw;
+                                }
+                            }
+
                             reply = activity.CreateReply(@"I've sent the request. You can check the status of your request by typing ""check status"".");
                         }
                     }
@@ -223,7 +256,24 @@ namespace ApprovalBot.Dialogs
         {
             await ShowTyping(context, activity);
             // Get a list of files to choose from
-            var pickerCard = await GraphHelper.GetFilePickerCardFromOneDrive(accessToken);
+            AdaptiveCard pickerCard = null;
+            try
+            {
+                pickerCard = await GraphHelper.GetFilePickerCardFromOneDrive(accessToken);
+            }
+            catch (Microsoft.Graph.ServiceException ex)
+            {
+                if (ex.Error.Code == "UnknownError" && ex.Message.Contains("Invalid Hostname"))
+                {
+                    // retry
+                    pickerCard = await GraphHelper.GetFilePickerCardFromOneDrive(accessToken);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            
             if (pickerCard != null)
             {
                 var reply = activity.CreateReply("Get approval for which file?");
@@ -244,7 +294,25 @@ namespace ApprovalBot.Dialogs
         {
             await ShowTyping(context, activity);
             var reply = activity.CreateReply("Get approval for this file?");
-            var fileDetailCard = await GraphHelper.GetFileDetailCard(accessToken, fileId);
+            AdaptiveCard fileDetailCard = null;
+
+            try
+            {
+                fileDetailCard = await GraphHelper.GetFileDetailCard(accessToken, fileId);
+            }
+            catch (Microsoft.Graph.ServiceException ex)
+            {
+                if (ex.Error.Code == "UnknownError" && ex.Message.Contains("Invalid Hostname"))
+                {
+                    // retry
+                    fileDetailCard = await GraphHelper.GetFileDetailCard(accessToken, fileId);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
             reply.Attachments = new List<Attachment>()
             {
                 new Attachment() { ContentType = AdaptiveCard.ContentType, Content = fileDetailCard }
