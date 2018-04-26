@@ -74,6 +74,8 @@ namespace ApprovalBot.Dialogs
                     string accessToken = await GetAccessToken(context);
                     if (string.IsNullOrEmpty(accessToken))
                     {
+                        // Save the user's input
+                        context.UserData.SetValue("preAuthCommand", activity);
                         // Do prompt
                         await context.Forward(new AuthDialog(new MSALAuthProvider(), authOptions),
                         ResumeAfterAuth, activity, CancellationToken.None);
@@ -136,7 +138,25 @@ namespace ApprovalBot.Dialogs
                         }
                         else
                         {
-                            await ApprovalRequestHelper.SendApprovalRequest(accessToken, activity.From.Id, actionData.SelectedFile, approvers);
+                            await ShowTyping(context, activity);
+
+                            try
+                            {
+                                await ApprovalRequestHelper.SendApprovalRequest(accessToken, activity.From.Id, actionData.SelectedFile, approvers);
+                            }
+                            catch (Microsoft.Graph.ServiceException ex)
+                            {
+                                if (ex.Error.Code == "UnknownError" && ex.Message.Contains("Invalid Hostname"))
+                                {
+                                    // retry
+                                    await ApprovalRequestHelper.SendApprovalRequest(accessToken, activity.From.Id, actionData.SelectedFile, approvers);
+                                }
+                                else
+                                {
+                                    throw;
+                                }
+                            }
+
                             reply = activity.CreateReply(@"I've sent the request. You can check the status of your request by typing ""check status"".");
                         }
                     }
@@ -161,7 +181,7 @@ namespace ApprovalBot.Dialogs
                 else if (message.StartsWith("check status"))
                 {
                     RemoveMissingInfoState(context);
-                    reply = await PromptForApprovalRequest(context,activity, accessToken);
+                    reply = await PromptForApprovalRequest(context, activity, accessToken);
                 }
                 else if (!string.IsNullOrEmpty(ExpectedMissingInfo(context)))
                 {
@@ -181,7 +201,24 @@ namespace ApprovalBot.Dialogs
                         {
                             ActionData actionData = context.UserData.GetValue<ActionData>("actionData");
                             RemoveMissingInfoState(context);
-                            await ApprovalRequestHelper.SendApprovalRequest(accessToken, activity.From.Id, actionData.SelectedFile, approvers);
+                            await ShowTyping(context, activity);
+                            try
+                            {
+                                await ApprovalRequestHelper.SendApprovalRequest(accessToken, activity.From.Id, actionData.SelectedFile, approvers);
+                            }
+                            catch (Microsoft.Graph.ServiceException ex)
+                            {
+                                if (ex.Error.Code == "UnknownError" && ex.Message.Contains("Invalid Hostname"))
+                                {
+                                    // retry
+                                    await ApprovalRequestHelper.SendApprovalRequest(accessToken, activity.From.Id, actionData.SelectedFile, approvers);
+                                }
+                                else
+                                {
+                                    throw;
+                                }
+                            }
+
                             reply = activity.CreateReply(@"I've sent the request. You can check the status of your request by typing ""check status"".");
                         }
                     }
@@ -219,7 +256,24 @@ namespace ApprovalBot.Dialogs
         {
             await ShowTyping(context, activity);
             // Get a list of files to choose from
-            var pickerCard = await GraphHelper.GetFilePickerCardFromOneDrive(accessToken);
+            AdaptiveCard pickerCard = null;
+            try
+            {
+                pickerCard = await GraphHelper.GetFilePickerCardFromOneDrive(accessToken);
+            }
+            catch (Microsoft.Graph.ServiceException ex)
+            {
+                if (ex.Error.Code == "UnknownError" && ex.Message.Contains("Invalid Hostname"))
+                {
+                    // retry
+                    pickerCard = await GraphHelper.GetFilePickerCardFromOneDrive(accessToken);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            
             if (pickerCard != null)
             {
                 var reply = activity.CreateReply("Get approval for which file?");
@@ -240,7 +294,25 @@ namespace ApprovalBot.Dialogs
         {
             await ShowTyping(context, activity);
             var reply = activity.CreateReply("Get approval for this file?");
-            var fileDetailCard = await GraphHelper.GetFileDetailCard(accessToken, fileId);
+            AdaptiveCard fileDetailCard = null;
+
+            try
+            {
+                fileDetailCard = await GraphHelper.GetFileDetailCard(accessToken, fileId);
+            }
+            catch (Microsoft.Graph.ServiceException ex)
+            {
+                if (ex.Error.Code == "UnknownError" && ex.Message.Contains("Invalid Hostname"))
+                {
+                    // retry
+                    fileDetailCard = await GraphHelper.GetFileDetailCard(accessToken, fileId);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
             reply.Attachments = new List<Attachment>()
             {
                 new Attachment() { ContentType = AdaptiveCard.ContentType, Content = fileDetailCard }
@@ -252,18 +324,32 @@ namespace ApprovalBot.Dialogs
         private async Task<Activity> PromptForApprovalRequest(IDialogContext context, Activity activity, string accessToken)
         {
             await ShowTyping(context, activity);
-            var statusCard = await ApprovalStatusHelper.GetApprovalsForUserCard(accessToken, activity.From.Id);
-            if (statusCard == null)
+            var statusCardList = await ApprovalStatusHelper.GetApprovalsForUserCard(accessToken, activity.From.Id);
+            if (statusCardList == null)
             {
                 return activity.CreateReply("I'm sorry, but I didn't find any approvals requested by you.");
             }
             else
             {
                 var reply = activity.CreateReply();
-                reply.Attachments = new List<Attachment>()
+
+                if (statusCardList.Count > 1)
                 {
-                    new Attachment() { ContentType = AdaptiveCard.ContentType, Content = statusCard }
-                };
+                    reply.Text = "Select an approval to see its status.";
+                    reply.AttachmentLayout = AttachmentLayoutTypes.Carousel;
+                }
+
+                reply.Attachments = new List<Attachment>();
+
+                foreach(var card in statusCardList)
+                {
+                    reply.Attachments.Add(new Attachment()
+                    {
+                        ContentType = AdaptiveCard.ContentType,
+                        Content = card
+                    });
+                }
+
                 return reply;
             }
         }
@@ -308,7 +394,20 @@ namespace ApprovalBot.Dialogs
         {
             var message = await result;
 
-            await context.PostAsync("Now that you're logged in, what can I do for you?");
+            // See if we've saved a command
+            var preAuthCommand = context.UserData.GetValueOrDefault<Activity>("preAuthCommand", null);
+            if (preAuthCommand != null)
+            {
+                // remove it
+                context.UserData.RemoveValue("preAuthCommand");
+                var reply = await HandleMessage(context, preAuthCommand, message.AccessToken);
+                await context.PostAsync(reply);
+            }
+            else
+            {
+                await context.PostAsync("Now that you're logged in, what can I do for you?");
+            }
+
             context.Wait(MessageReceivedAsync);
         }
 

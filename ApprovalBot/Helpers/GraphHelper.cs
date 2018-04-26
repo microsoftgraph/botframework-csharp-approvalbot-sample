@@ -13,6 +13,7 @@ using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Connector;
 using Microsoft.Graph;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace ApprovalBot.Helpers
 {
@@ -21,6 +22,7 @@ namespace ApprovalBot.Helpers
         private static readonly bool LogGraphRequests =
             string.IsNullOrEmpty(ConfigurationManager.AppSettings["LogGraphRequests"]) ? false :
             Convert.ToBoolean(ConfigurationManager.AppSettings["LogGraphRequests"]);
+
         public static async Task<AdaptiveCard> GetFilePickerCardFromOneDrive(string accessToken)
         {
             var client = await GetAuthenticatedClient(accessToken);
@@ -117,7 +119,7 @@ namespace ApprovalBot.Helpers
                 Facts = new List<AdaptiveFact>()
                 {
                     new AdaptiveFact("Size", $"{file.Size / 1024} KB"),
-                    new AdaptiveFact("Last modified", file.LastModifiedDateTime.ToString()),
+                    new AdaptiveFact("Last modified", TimeZoneHelper.GetAdaptiveDateTimeString(file.LastModifiedDateTime.Value)),
                     new AdaptiveFact("Last modified by", file.LastModifiedBy.User.DisplayName)
                 }
             });

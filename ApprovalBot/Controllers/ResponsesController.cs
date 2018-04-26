@@ -65,7 +65,7 @@ namespace ApprovalBot.Controllers
             // Modify card for this use case
             responseCard.Body.Insert(0, new AdaptiveTextBlock()
             {
-                Text = $"Response status as of {DateTimeOffset.UtcNow}:"
+                Text = $"Response status as of {TimeZoneHelper.GetAdaptiveDateTimeString(DateTimeOffset.UtcNow)}:"
             });
 
             responseCard.Body.Insert(0, new AdaptiveTextBlock()
