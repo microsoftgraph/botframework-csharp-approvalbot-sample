@@ -15,6 +15,8 @@ namespace ApprovalBot
     {
         protected void Application_Start()
         {
+            GlobalConfiguration.Configure(WebApiConfig.Register);
+
             Conversation.UpdateContainer(
                 builder =>
                 {
@@ -35,8 +37,6 @@ namespace ApprovalBot
 
             // Initialize approvals database
             DatabaseHelper.Initialize();
-
-            GlobalConfiguration.Configure(WebApiConfig.Register);
         }
     }
 }

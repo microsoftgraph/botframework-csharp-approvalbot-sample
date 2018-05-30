@@ -1,4 +1,9 @@
-﻿using System;
+﻿using AdaptiveCards;
+using ApprovalBot.Models;
+using Microsoft.Bot.Builder.Dialogs;
+using Microsoft.Graph;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
@@ -6,14 +11,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Web;
-using AdaptiveCards;
-using ApprovalBot.Models;
-using Microsoft.Bot.Builder.Dialogs;
-using Microsoft.Bot.Connector;
-using Microsoft.Graph;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace ApprovalBot.Helpers
 {
@@ -25,7 +22,7 @@ namespace ApprovalBot.Helpers
 
         public static async Task<AdaptiveCard> GetFilePickerCardFromOneDrive(string accessToken)
         {
-            var client = await GetAuthenticatedClient(accessToken);
+            var client = GetAuthenticatedClient(accessToken);
 
             // Get the first 20 items from the root of user's OneDrive
             var driveItems = await client.Me.Drive.Root.Children.Request()
@@ -66,6 +63,13 @@ namespace ApprovalBot.Helpers
             {
                 pickerCard.Body.Add(new AdaptiveTextBlock()
                 {
+                    Text = "Get approval for which file?",
+                    Size = AdaptiveTextSize.Large,
+                    Weight = AdaptiveTextWeight.Bolder
+                });
+
+                pickerCard.Body.Add(new AdaptiveTextBlock()
+                {
                     Text = "I found these in your OneDrive",
                     Weight = AdaptiveTextWeight.Bolder
                 });
@@ -92,7 +96,7 @@ namespace ApprovalBot.Helpers
 
         public static async Task<AdaptiveCard> GetFileDetailCard(string accessToken, string fileId)
         {
-            var client = await GetAuthenticatedClient(accessToken);
+            var client = GetAuthenticatedClient(accessToken);
 
             // Get the file with thumbnails
             var file = await client.Me.Drive.Items[fileId].Request()
@@ -107,6 +111,13 @@ namespace ApprovalBot.Helpers
                 .GetAsync();
 
             var fileCard = new AdaptiveCard();
+
+            fileCard.Body.Add(new AdaptiveTextBlock()
+            {
+                Text = "Get approval for this file?",
+                Size = AdaptiveTextSize.Large,
+                Weight = AdaptiveTextWeight.Bolder
+            });
 
             fileCard.Body.Add(new AdaptiveTextBlock()
             {
@@ -183,7 +194,7 @@ namespace ApprovalBot.Helpers
 
         public static async Task<ApprovalFileInfo> GetFileInfo(string accessToken, string fileId)
         {
-            var client = await GetAuthenticatedClient(accessToken);
+            var client = GetAuthenticatedClient(accessToken);
 
             // Get the file with thumbnails
             var file = await client.Me.Drive.Items[fileId].Request()
@@ -208,7 +219,7 @@ namespace ApprovalBot.Helpers
 
         public static async Task<User> GetUser(string accessToken)
         {
-            var client = await GetAuthenticatedClient(accessToken);
+            var client = GetAuthenticatedClient(accessToken);
 
             return await client.Me.Request()
                 .Select("displayName, mail")
@@ -217,7 +228,7 @@ namespace ApprovalBot.Helpers
 
         public static async Task<string> GetUserPhotoDataUri(string accessToken, string size)
         {
-            var client = await GetAuthenticatedClient(accessToken);
+            var client = GetAuthenticatedClient(accessToken);
 
             try
             {
@@ -239,7 +250,7 @@ namespace ApprovalBot.Helpers
 
         public static async Task<string> GetFileThumbnailDataUri(string accessToken, string fileId)
         {
-            var client = await GetAuthenticatedClient(accessToken);
+            var client = GetAuthenticatedClient(accessToken);
 
             try
             {
@@ -284,7 +295,7 @@ namespace ApprovalBot.Helpers
                 };
             }
 
-            var client = await GetAuthenticatedClient(accessToken);
+            var client = GetAuthenticatedClient(accessToken);
 
             await client.Me.SendMail(actionableMessage, true).Request().PostAsync();
         }
@@ -307,7 +318,7 @@ namespace ApprovalBot.Helpers
             return string.Format(htmlBodyTemplate, cardPayload);
         }
 
-        private static async Task<GraphServiceClient> GetAuthenticatedClient(string accessToken)
+        private static GraphServiceClient GetAuthenticatedClient(string accessToken)
         {
             if (LogGraphRequests)
                 return new GraphServiceClient(new DelegateAuthenticationProvider(
@@ -315,6 +326,7 @@ namespace ApprovalBot.Helpers
                     {
                         requestMessage.Headers.Authorization =
                             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                        await Task.FromResult(0);
                     }),
                     new HttpProvider(new LoggingHttpProvider(), true, null));
 
@@ -323,6 +335,7 @@ namespace ApprovalBot.Helpers
                 {
                     requestMessage.Headers.Authorization =
                         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                    await Task.FromResult(0);
                 }));
         }
     }

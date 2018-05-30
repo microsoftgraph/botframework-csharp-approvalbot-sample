@@ -1,15 +1,14 @@
-﻿using Microsoft.Azure.Documents;
+﻿using ApprovalBot.Models;
+using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
+using Microsoft.Azure.Documents.Linq;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Net;
 using System.Threading.Tasks;
-using System.Web;
-using ApprovalBot.Models;
-using System.Linq.Expressions;
-using Microsoft.Azure.Documents.Linq;
 
 namespace ApprovalBot.Helpers
 {
