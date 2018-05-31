@@ -22,13 +22,13 @@ namespace ApprovalBot
             }
             else
             {
-                HandleSystemMessage(activity);
+                await HandleSystemMessage(activity);
             }
             var response = Request.CreateResponse(HttpStatusCode.OK);
             return response;
         }
 
-        private Activity HandleSystemMessage(Activity message)
+        private async Task HandleSystemMessage(Activity message)
         {
             if (message.Type == ActivityTypes.DeleteUserData)
             {
@@ -53,8 +53,14 @@ namespace ApprovalBot
             else if (message.Type == ActivityTypes.Ping)
             {
             }
-
-            return null;
+            else if (message.Type == ActivityTypes.Event)
+            {
+                // Send TokenResponse Events along to the Dialog stack
+                if (message.IsTokenResponseEvent())
+                {
+                    await Conversation.SendAsync(message, () => new Dialogs.RootDialog());
+                }
+            }
         }
     }
 }

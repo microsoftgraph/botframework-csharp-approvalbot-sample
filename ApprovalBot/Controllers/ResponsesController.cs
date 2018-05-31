@@ -1,16 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using AdaptiveCards;
+using ApprovalBot.Helpers;
+using ApprovalBot.Models;
+using Microsoft.O365.ActionableMessages.Utilities;
+using System;
 using System.Configuration;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Web.Http;
-using AdaptiveCards;
-using ApprovalBot.Helpers;
-using ApprovalBot.Models;
-using Microsoft.O365.ActionableMessages.Utilities;
 
 namespace ApprovalBot.Controllers
 {

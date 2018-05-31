@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Mail;
-using System.Web;
 
 namespace ApprovalBot.Helpers
 {
@@ -23,7 +20,7 @@ namespace ApprovalBot.Helpers
 
         public static string[] ConvertDelimitedAddressStringToArray(string addressString)
         {
-            string[] addresses = addressString.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] addresses = addressString.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 
             foreach(string address in addresses)
             {
