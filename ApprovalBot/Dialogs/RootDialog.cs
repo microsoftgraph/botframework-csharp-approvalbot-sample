@@ -211,6 +211,7 @@ namespace ApprovalBot.Dialogs
 
             // Get a list of files to choose from
             AdaptiveCard pickerCard = null;
+
             try
             {
                 pickerCard = await GraphHelper.GetFilePickerCardFromOneDrive(accessToken.Token);
@@ -219,6 +220,8 @@ namespace ApprovalBot.Dialogs
             {
                 if (ex.Error.Code == "UnknownError" && ex.Message.Contains("Invalid Hostname"))
                 {
+                    // Log that this happened
+                    await DatabaseHelper.AddGraphLog(new GraphLogEntry(ex, "retry-get-file-picker"));
                     // retry
                     pickerCard = await GraphHelper.GetFilePickerCardFromOneDrive(accessToken.Token);
                 }
@@ -227,7 +230,7 @@ namespace ApprovalBot.Dialogs
                     throw;
                 }
             }
-            
+
             if (pickerCard != null)
             {
                 var reply = context.MakeMessage();
@@ -275,6 +278,8 @@ namespace ApprovalBot.Dialogs
             {
                 if (ex.Error.Code == "UnknownError" && ex.Message.Contains("Invalid Hostname"))
                 {
+                    // Log that this happened
+                    await DatabaseHelper.AddGraphLog(new GraphLogEntry(ex, "retry-get-file-detail"));
                     // retry
                     fileDetailCard = await GraphHelper.GetFileDetailCard(accessToken.Token, fileId);
                 }
@@ -383,6 +388,8 @@ namespace ApprovalBot.Dialogs
             {
                 if (ex.Error.Code == "UnknownError" && ex.Message.Contains("Invalid Hostname"))
                 {
+                    // Log that this happened
+                    await DatabaseHelper.AddGraphLog(new GraphLogEntry(ex, "retry-send-approval"));
                     // retry
                     await ApprovalRequestHelper.SendApprovalRequest(accessToken.Token, userId, fileId, approvers);
                 }
@@ -440,6 +447,9 @@ namespace ApprovalBot.Dialogs
         {
             // Remove any pending approvals
             await DatabaseHelper.DeleteAllUserApprovals(activity.From.Id);
+
+            // Sign out
+            await context.SignOutUserAsync(ConnectionName);
 
             context.UserData.Clear();
         }

@@ -10,8 +10,8 @@ namespace ApprovalBot.Dialogs
     {
         private readonly IDialog<T> dialog;
         private readonly bool displayException =
-            !string.IsNullOrEmpty(ConfigurationManager.AppSettings["DisplayExceptions"]) &&
-            ConfigurationManager.AppSettings["DisplayExceptions"].ToLower() == "true";
+            string.IsNullOrEmpty(ConfigurationManager.AppSettings["DisplayExceptions"]) ? false :
+            Convert.ToBoolean(ConfigurationManager.AppSettings["DisplayExceptions"]);
 
         public ExceptionHandlerDialog(IDialog<T> dialog)
         {
