@@ -148,7 +148,7 @@ namespace ApprovalBot.Dialogs
                     }
                     else
                     {
-                        ActionData actionData = context.UserData.GetValue<ActionData>("actionData");
+                        ActionData actionData = context.ConversationData.GetValue<ActionData>("actionData");
                         RemoveMissingInfoState(context);
                         //await ShowTyping(context, activity);
 
