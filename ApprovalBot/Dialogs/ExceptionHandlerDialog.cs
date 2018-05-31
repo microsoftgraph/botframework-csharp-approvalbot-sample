@@ -26,6 +26,8 @@ namespace ApprovalBot.Dialogs
             }
             catch (Exception ex)
             {
+                await LogException(ex);
+
                 if (displayException)
                 {
                     await DisplayException(context, ex).ConfigureAwait(false);
@@ -41,6 +43,8 @@ namespace ApprovalBot.Dialogs
             }
             catch (Exception ex)
             {
+                await LogException(ex);
+
                 if (displayException)
                 {
                     await DisplayException(context, ex).ConfigureAwait(false);
@@ -54,6 +58,12 @@ namespace ApprovalBot.Dialogs
             var stack = ex.StackTrace.Replace(Environment.NewLine, "  \n");
 
             await context.PostAsync($"**{message}**  \n\n{stack}").ConfigureAwait(false);
+        }
+
+        private async Task LogException(Exception ex)
+        {
+            var exceptionLog = new Helpers.GraphLogEntry(ex, string.Empty);
+            await Helpers.DatabaseHelper.AddGraphLog(exceptionLog);
         }
     }
 }
