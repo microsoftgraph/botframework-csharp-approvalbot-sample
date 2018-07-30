@@ -15,147 +15,83 @@ namespace ApprovalBot.Dialogs
     {
         private static string ConnectionName = ConfigurationManager.AppSettings["ConnectionName"];
 
-        public Task StartAsync(IDialogContext context)
+        public async Task StartAsync(IDialogContext context)
         {
             context.Wait(MessageReceivedAsync);
-
-            return Task.CompletedTask;
         }
 
         private async Task MessageReceivedAsync(IDialogContext context, IAwaitable<object> result)
         {
-            try
+            var activity = await result as Activity;
+            string userText = string.IsNullOrEmpty(activity.Text) ? string.Empty : activity.Text.ToLower();
+
+            // Handle the text as appropriate
+            if (IsMessageEmpty(activity) || userText.StartsWith("help"))
             {
-                var activity = await result as Activity;
-                string userText = string.IsNullOrEmpty(activity.Text) ? string.Empty : activity.Text.ToLower();
+                await ShowHelp(context);
+                context.Wait(MessageReceivedAsync);
+            }
 
-                // Handle the text as appropriate
-                if (IsMessageEmpty(activity) || userText.StartsWith("help"))
+            else if (userText.StartsWith("hi") || userText.StartsWith("hello") || userText.StartsWith("hey"))
+            {
+                await context.PostAsync(@"Hi! What can I do for you? (try ""get approval"" to start an approval request)");
+                context.Wait(MessageReceivedAsync);
+            }
+
+            else if (userText.StartsWith("logout"))
+            {
+                await context.SignOutUserAsync(ConnectionName);
+                await context.PostAsync("You are now logged out.");
+                context.Wait(MessageReceivedAsync);
+            }
+
+            else if (userText.StartsWith("reset demo please"))
+            {
+                await ResetDemo(context, activity);
+                await context.PostAsync("DEMO RESET");
+                context.Wait(MessageReceivedAsync);
+            }
+
+            // Anything else requires auth
+            // The text can be empty when receiving a message back from a card
+            // button.
+            else if (string.IsNullOrEmpty(userText))
+            {
+                // Handle card action data
+                var actionData = ActionData.Parse(activity.Value);
+
+                // When the user selects a file in the select file card
+                if (actionData.CardAction == CardActionTypes.SelectFile)
                 {
-                    await ShowHelp(context);
-                    context.Wait(MessageReceivedAsync);
+                    // Save selected file to conversation state
+                    context.ConversationData.SetValue("selectedFile", actionData.SelectedFile);
+                    // Show file detail card and confirm selection
+                    context.Call(CreateGetTokenDialog(), ConfirmFile);
+                    //reply = await ConfirmFile(context, activity, accessToken.Token, actionData.SelectedFile);
                 }
-
-                else if (userText.StartsWith("hi") || userText.StartsWith("hello") || userText.StartsWith("hey"))
+                // When the user clicks the "send approval request" button
+                else if (actionData.CardAction == CardActionTypes.SendApprovalRequest)
                 {
-                    await context.PostAsync(@"Hi! What can I do for you? (try ""get approval"" to start an approval request)");
-                    context.Wait(MessageReceivedAsync);
-                }
-
-                else if (userText.StartsWith("logout"))
-                {
-                    await context.SignOutUserAsync(ConnectionName);
-                    await context.PostAsync("You are now logged out.");
-                    context.Wait(MessageReceivedAsync);
-                }
-
-                else if (userText.StartsWith("reset demo please"))
-                {
-                    await ResetDemo(context, activity);
-                    await context.PostAsync("DEMO RESET");
-                    context.Wait(MessageReceivedAsync);
-                }
-
-                // Anything else requires auth
-                // The text can be empty when receiving a message back from a card
-                // button.
-                else if (string.IsNullOrEmpty(userText))
-                {
-                    // Handle card action data
-                    var actionData = ActionData.Parse(activity.Value);
-
-                    // When the user selects a file in the select file card
-                    if (actionData.CardAction == CardActionTypes.SelectFile)
+                    // Check approvers
+                    if (string.IsNullOrEmpty(actionData.Approvers))
                     {
-                        // Save selected file to conversation state
-                        context.ConversationData.SetValue("selectedFile", actionData.SelectedFile);
-                        // Show file detail card and confirm selection
-                        context.Call(CreateGetTokenDialog(), ConfirmFile);
-                        //reply = await ConfirmFile(context, activity, accessToken.Token, actionData.SelectedFile);
-                    }
-                    // When the user clicks the "send approval request" button
-                    else if (actionData.CardAction == CardActionTypes.SendApprovalRequest)
-                    {
-                        // Check approvers
-                        if (string.IsNullOrEmpty(actionData.Approvers))
-                        {
-                            SaveMissingInfoState(context, "approvers", actionData);
-                            await context.PostAsync("I need at least one approver email address to send to. Who should I send to?");
-                            context.Wait(MessageReceivedAsync);
-                        }
-
-                        else
-                        {
-                            string[] approvers = EmailHelper.ConvertDelimitedAddressStringToArray(actionData.Approvers.Trim());
-                            if (approvers == null)
-                            {
-                                SaveMissingInfoState(context, "approvers", actionData);
-                                await context.PostAsync($"One or more values in **{actionData.Approvers}** is not a valid SMTP email address. Can you give me the list of approvers again?");
-                                context.Wait(MessageReceivedAsync);
-                            }
-                            else
-                            {
-                                //await ShowTyping(context, activity);
-                                // Save user ID, selected file, and approvers to conversation state
-                                context.ConversationData.SetValue("approvalRequestor", activity.From.Id);
-                                context.ConversationData.SetValue("selectedFile", actionData.SelectedFile);
-                                context.ConversationData.SetValue("approvers", approvers);
-
-                                context.Call(CreateGetTokenDialog(), SendApprovalRequest);
-                            }
-                        }
-                    }
-                    // User clicked the "no" button when confirming the file.
-                    else if (actionData.CardAction == CardActionTypes.WrongFile)
-                    {
-                        // Re-prompt for a file
-                        context.Call(CreateGetTokenDialog(), PromptForFile);
-                    }
-                    //  User selected a pending approval to check status
-                    else if (actionData.CardAction == CardActionTypes.SelectApproval)
-                    {
-                        // Save the selected approval to conversation state
-                        context.ConversationData.SetValue("selectedApproval", actionData.SelectedApproval);
-                        context.Call(CreateGetTokenDialog(), GetApprovalStatus);
-                    }
-                    else
-                    {
-                        await context.PostAsync(@"I'm sorry, I don't understand what you want me to do. Type ""help"" to see a list of things I can do.");
+                        SaveMissingInfoState(context, "approvers", actionData);
+                        await context.PostAsync("I need at least one approver email address to send to. Who should I send to?");
                         context.Wait(MessageReceivedAsync);
                     }
-                }
-                else if (userText.StartsWith("get approval"))
-                {
-                    RemoveMissingInfoState(context);
-                    context.Call(CreateGetTokenDialog(), PromptForFile);
-                }
-                else if (userText.StartsWith("check status"))
-                {
-                    RemoveMissingInfoState(context);
-                    // Save user ID to conversation state
-                    context.ConversationData.SetValue("approvalRequestor", activity.From.Id);
-                    context.Call(CreateGetTokenDialog(), PromptForApprovalRequest);
-                }
-                else if (!string.IsNullOrEmpty(ExpectedMissingInfo(context)))
-                {
-                    string missingField = ExpectedMissingInfo(context);
 
-                    if (missingField == "approvers")
+                    else
                     {
-                        // Validate input
-                        string[] approvers = EmailHelper.ConvertDelimitedAddressStringToArray(userText.Trim());
+                        string[] approvers = EmailHelper.ConvertDelimitedAddressStringToArray(actionData.Approvers.Trim());
                         if (approvers == null)
                         {
-                            await context.PostAsync(@"Sorry, I'm still having trouble. Please enter the approvers again, keeping in mind:
-- Use full SMTP email addresses, like `bob@contsoso.com`
-- Separate multiple email addresses with a semicolon (`;`), like `bob@contoso.com;allie@contoso.com`");
+                            SaveMissingInfoState(context, "approvers", actionData);
+                            await context.PostAsync($"One or more values in **{actionData.Approvers}** is not a valid SMTP email address. Can you give me the list of approvers again?");
+                            context.Wait(MessageReceivedAsync);
                         }
                         else
                         {
-                            ActionData actionData = context.UserData.GetValue<ActionData>("actionData");
-                            RemoveMissingInfoState(context);
                             //await ShowTyping(context, activity);
-
                             // Save user ID, selected file, and approvers to conversation state
                             context.ConversationData.SetValue("approvalRequestor", activity.From.Id);
                             context.ConversationData.SetValue("selectedFile", actionData.SelectedFile);
@@ -165,16 +101,69 @@ namespace ApprovalBot.Dialogs
                         }
                     }
                 }
+                // User clicked the "no" button when confirming the file.
+                else if (actionData.CardAction == CardActionTypes.WrongFile)
+                {
+                    // Re-prompt for a file
+                    context.Call(CreateGetTokenDialog(), PromptForFile);
+                }
+                //  User selected a pending approval to check status
+                else if (actionData.CardAction == CardActionTypes.SelectApproval)
+                {
+                    // Save the selected approval to conversation state
+                    context.ConversationData.SetValue("selectedApproval", actionData.SelectedApproval);
+                    context.Call(CreateGetTokenDialog(), GetApprovalStatus);
+                }
                 else
                 {
                     await context.PostAsync(@"I'm sorry, I don't understand what you want me to do. Type ""help"" to see a list of things I can do.");
                     context.Wait(MessageReceivedAsync);
                 }
             }
-            catch (Microsoft.Graph.ServiceException ex)
+            else if (userText.StartsWith("get approval"))
             {
-                await context.PostAsync("EXCEPTION OCCURRED");
-                await context.PostAsync(ex.ToString());
+                RemoveMissingInfoState(context);
+                context.Call(CreateGetTokenDialog(), PromptForFile);
+            }
+            else if (userText.StartsWith("check status"))
+            {
+                RemoveMissingInfoState(context);
+                // Save user ID to conversation state
+                context.ConversationData.SetValue("approvalRequestor", activity.From.Id);
+                context.Call(CreateGetTokenDialog(), PromptForApprovalRequest);
+            }
+            else if (!string.IsNullOrEmpty(ExpectedMissingInfo(context)))
+            {
+                string missingField = ExpectedMissingInfo(context);
+
+                if (missingField == "approvers")
+                {
+                    // Validate input
+                    string[] approvers = EmailHelper.ConvertDelimitedAddressStringToArray(userText.Trim());
+                    if (approvers == null)
+                    {
+                        await context.PostAsync(@"Sorry, I'm still having trouble. Please enter the approvers again, keeping in mind:
+- Use full SMTP email addresses, like `bob@contsoso.com`
+- Separate multiple email addresses with a semicolon (`;`), like `bob@contoso.com;allie@contoso.com`");
+                    }
+                    else
+                    {
+                        ActionData actionData = context.ConversationData.GetValue<ActionData>("actionData");
+                        RemoveMissingInfoState(context);
+                        //await ShowTyping(context, activity);
+
+                        // Save user ID, selected file, and approvers to conversation state
+                        context.ConversationData.SetValue("approvalRequestor", activity.From.Id);
+                        context.ConversationData.SetValue("selectedFile", actionData.SelectedFile);
+                        context.ConversationData.SetValue("approvers", approvers);
+
+                        context.Call(CreateGetTokenDialog(), SendApprovalRequest);
+                    }
+                }
+            }
+            else
+            {
+                await context.PostAsync(@"I'm sorry, I don't understand what you want me to do. Type ""help"" to see a list of things I can do.");
                 context.Wait(MessageReceivedAsync);
             }
         }
@@ -222,6 +211,7 @@ namespace ApprovalBot.Dialogs
 
             // Get a list of files to choose from
             AdaptiveCard pickerCard = null;
+
             try
             {
                 pickerCard = await GraphHelper.GetFilePickerCardFromOneDrive(accessToken.Token);
@@ -230,6 +220,8 @@ namespace ApprovalBot.Dialogs
             {
                 if (ex.Error.Code == "UnknownError" && ex.Message.Contains("Invalid Hostname"))
                 {
+                    // Log that this happened
+                    await DatabaseHelper.AddGraphLog(new GraphLogEntry(ex, "retry-get-file-picker"));
                     // retry
                     pickerCard = await GraphHelper.GetFilePickerCardFromOneDrive(accessToken.Token);
                 }
@@ -238,7 +230,7 @@ namespace ApprovalBot.Dialogs
                     throw;
                 }
             }
-            
+
             if (pickerCard != null)
             {
                 var reply = context.MakeMessage();
@@ -286,6 +278,8 @@ namespace ApprovalBot.Dialogs
             {
                 if (ex.Error.Code == "UnknownError" && ex.Message.Contains("Invalid Hostname"))
                 {
+                    // Log that this happened
+                    await DatabaseHelper.AddGraphLog(new GraphLogEntry(ex, "retry-get-file-detail"));
                     // retry
                     fileDetailCard = await GraphHelper.GetFileDetailCard(accessToken.Token, fileId);
                 }
@@ -394,6 +388,8 @@ namespace ApprovalBot.Dialogs
             {
                 if (ex.Error.Code == "UnknownError" && ex.Message.Contains("Invalid Hostname"))
                 {
+                    // Log that this happened
+                    await DatabaseHelper.AddGraphLog(new GraphLogEntry(ex, "retry-send-approval"));
                     // retry
                     await ApprovalRequestHelper.SendApprovalRequest(accessToken.Token, userId, fileId, approvers);
                 }
@@ -451,6 +447,9 @@ namespace ApprovalBot.Dialogs
         {
             // Remove any pending approvals
             await DatabaseHelper.DeleteAllUserApprovals(activity.From.Id);
+
+            // Sign out
+            await context.SignOutUserAsync(ConnectionName);
 
             context.UserData.Clear();
         }

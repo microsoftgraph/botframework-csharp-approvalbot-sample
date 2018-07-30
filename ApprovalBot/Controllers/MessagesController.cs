@@ -18,7 +18,7 @@ namespace ApprovalBot
         {
             if (activity.Type == ActivityTypes.Message)
             {
-                await Conversation.SendAsync(activity, () => new Dialogs.RootDialog());
+                await Conversation.SendAsync(activity, () => new Dialogs.ExceptionHandlerDialog<object>(new Dialogs.RootDialog()));
             }
             else
             {
