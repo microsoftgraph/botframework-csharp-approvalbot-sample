@@ -73,6 +73,8 @@ You can use the ngrok web interface ([http://127.0.0.1:4040](http://127.0.0.1:40
 1. Make a copy of the **./ApprovalBot/PrivateSettings.example.config** file in the same directory, and name the copy `PrivateSettings.config`.
 1. Open **ApprovalBot.sln** in Visual Studio, then open the **PrivateSettings.config** file.
 
+1. Set the value of `MicrosoftAppId` to the Application (client) ID you generated in the previous step, and set the value of `MicrosoftAppPassword` to the secret you generated afterwards.
+
 1. Paste the ngrok HTTPS URL value copied from the previous step into the value of `NgrokRootUrl` in **PrivateSettings.config**, and save your changes.
 
     > **IMPORTANT**: Leave ngrok running while you run the sample. If you stop ngrok and re-start it, the forwarding URL changes, and you'll need to update the value of `NgrokRootUrl`.
