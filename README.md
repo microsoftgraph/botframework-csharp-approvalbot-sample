@@ -25,7 +25,7 @@ Follow these steps to enable running the bot locally for debugging.
     - Set **Supported account types** to **Accounts in any organizational directory**.
     - Under **Redirect URI**, set the first drop-down to `Web` and set the value to `http://localhost:3979/callback`.
 
-    ![A screenshot of the Register an application page](readme-images/aad-register-an-app.png)
+    ![A screenshot of the Register an application page](readme-images/aad-register-an-app.PNG)
 
 1. Choose **Register**. On the **Approval Bot** page, copy the value of the **Application (client) ID** and save it, you will need it in the next step.
 
