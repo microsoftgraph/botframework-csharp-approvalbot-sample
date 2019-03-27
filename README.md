@@ -11,19 +11,71 @@ Follow these steps to enable running the bot locally for debugging.
 - [Azure Cosmos DB Emulator](https://docs.microsoft.com/en-us/azure/cosmos-db/local-emulator)
 - Visual Studio 2017
 
-### Setup
+### Register the app
 
-1. Clone the repository locally.
-1. Make a copy of the **./ApprovalBot/PrivateSettings.example.config** file in the same directory, and name the copy `PrivateSettings.config`.
-1. Open **ApprovalBot.sln** in Visual Studio, then open the **PrivateSettings.config** file.
-1. Register an app at the [Application Registration Portal](https://apps.dev.microsoft.com). Get an application ID and secret, and add a Web platform with the redirect URL set to `http://localhost:3979/callback`.
-1. Set the value of `MicrosoftAppId` to the app ID you just generated, and set the value of `MicrosoftAppPassword` to the secret you just generated.
-1. Open a command prompt and run ngrok with the following command line:
+1. Open a browser and navigate to the [Azure Active Directory admin center](https://aad.portal.azure.com). Login using a **Work or School Account**.
+
+1. Select **Azure Active Directory** in the left-hand navigation, then select **App registrations (Preview)** under **Manage**.
+
+    ![A screenshot of the App registrations ](readme-images/aad-portal-app-registrations.png)
+
+1. Select **New registration**. On the **Register an application** page, set the values as follows.
+
+    - Set a preferred **Name** e.g. `Approval Bot`.
+    - Set **Supported account types** to **Accounts in any organizational directory**.
+    - Under **Redirect URI**, set the first drop-down to `Web` and set the value to `http://localhost:3979/callback`.
+
+    ![A screenshot of the Register an application page](readme-images/aad-register-an-app.PNG)
+
+1. Choose **Register**. On the **Approval Bot** page, copy the value of the **Application (client) ID** and save it, you will need it in the next step.
+
+    ![A screenshot of the application ID of the new app registration](readme-images/aad-application-id.PNG)
+
+1. Select **Certificates & secrets** under **Manage**. Select the **New client secret** button. Enter a value in **Description** and select one of the options for **Expires** and choose **Add**.
+
+    ![A screenshot of the Add a client secret dialog](readme-images/aad-new-client-secret.png)
+
+1. Copy the client secret value before you leave this page. You will need it in the next step.
+
+    > [!IMPORTANT]
+    > This client secret is never shown again, so make sure you copy it now.
+
+    ![A screenshot of the newly added client secret](readme-images/aad-copy-client-secret.png)
+
+### Set up the ngrok proxy
+
+You must expose a public HTTPS endpoint to receive notifications from the Bot Framework Emulator. While testing, you can use ngrok to temporarily allow messages from the Bot Framework Emulator to tunnel to a *localhost* port on your computer.
+
+You can use the ngrok web interface ([http://127.0.0.1:4040](http://127.0.0.1:4040)) to inspect the HTTP traffic that passes through the tunnel. To learn more about using ngrok, see the [ngrok website](https://ngrok.com/).
+
+
+1. [Download ngrok](https://ngrok.com/download) for Windows.
+
+1. Unzip the package and run ngrok.exe.
+
+1. Run the following command line on the ngrok console:
 
     ```Shell
     ngrok http 3979 --host-header=localhost:3979
     ```
-1. When ngrok starts up, copy the second **Forwarding** value, which should be an https URL like `https://c8653c26.ngrok.io`. Paste this value in the value of `NgrokRootUrl` in **PrivateSettings.config**, and save your changes.
+
+    ![Example command to run in the ngrok console](readme-images/ngrok1.PNG)
+
+1. Copy the HTTPS URL that's shown in the console. You'll use this to configure your `NgrokRootUrl` in the sample.
+
+    ![The forwarding HTTPS URL in the ngrok console](readme-images/ngrok2.PNG)
+
+    > **Note:** Keep the console open while testing. If you close it, the tunnel also closes and you'll need to generate a new URL and update the sample.
+
+### Configure and run the sample
+
+1. Clone the repository locally.
+1. Make a copy of the **./ApprovalBot/PrivateSettings.example.config** file in the same directory, and name the copy `PrivateSettings.config`.
+1. Open **ApprovalBot.sln** in Visual Studio, then open the **PrivateSettings.config** file.
+
+1. Set the value of `MicrosoftAppId` to the Application (client) ID you generated in the previous step, and set the value of `MicrosoftAppPassword` to the secret you generated afterwards.
+
+1. Paste the ngrok HTTPS URL value copied from the previous step into the value of `NgrokRootUrl` in **PrivateSettings.config**, and save your changes.
 
     > **IMPORTANT**: Leave ngrok running while you run the sample. If you stop ngrok and re-start it, the forwarding URL changes, and you'll need to update the value of `NgrokRootUrl`.
 
@@ -62,3 +114,7 @@ provided by the bot. You will only need to do this once across all repos using o
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+## Copyright
+
+Copyright (c) 2019 Microsoft. All rights reserved.
