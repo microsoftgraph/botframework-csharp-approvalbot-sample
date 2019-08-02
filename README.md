@@ -1,3 +1,21 @@
+---
+page_type: sample
+products:
+- office-outlook
+- office-onedrive
+- ms-graph
+languages:
+- csharp
+extensions:
+  contentType: samples
+  technologies:
+  - Microsoft Graph
+  - Microsoft Bot Framework
+  services:
+  - Outlook
+  - OneDrive
+  createdDate: 4/23/2018 12:12:07 PM
+---
 # Approval Bot Sample
 
 ## Running locally
