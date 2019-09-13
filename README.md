@@ -6,6 +6,7 @@ products:
 - ms-graph
 languages:
 - csharp
+description: "A sample Bot that uses adaptive cards and the .NET Graph SDK to send actionable messages requesting approval to release files on OneDrive."
 extensions:
   contentType: samples
   technologies:
