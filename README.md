@@ -26,7 +26,7 @@ Follow these steps to enable running the bot locally for debugging.
 ### Prerequisites
 
 - [ngrok](https://ngrok.com/)
-- [Bot Framework Emulator](https://github.com/Microsoft/BotFramework-Emulator/releases) - **Note:** The installer does not seem to create any shortcuts to the app. I recommend browsing to `%localappdata%\botframework\app-3.5.35\botframework-emulator.exe` and creating a shortcut on your desktop.
+- [Bot Framework Emulator](https://github.com/Microsoft/BotFramework-Emulator/releases)
 - [Azure Cosmos DB Emulator](https://docs.microsoft.com/en-us/azure/cosmos-db/local-emulator)
 - Visual Studio 2017
 
